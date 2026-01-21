@@ -1,21 +1,12 @@
-from collections import defaultdict
-
 def detect_cycle(start_task_id, target_task_id, dependency_map):
-    """
-    Checks if adding an edge start_task -> target_task creates a cycle.
-
-    Returns:
-        (has_cycle: bool, path: list[int])
-    """
-
     visited = set()
     stack = []
 
-    def dfs(current):
-        visited.add(current)
-        stack.append(current)
+    def dfs(node):
+        visited.add(node)
+        stack.append(node)
 
-        for neighbor in dependency_map.get(current, []):
+        for neighbor in dependency_map.get(node, []):
             if neighbor == start_task_id:
                 return True
             if neighbor not in visited:

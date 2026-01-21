@@ -1,5 +1,6 @@
 from django.db import models
 
+
 class Task(models.Model):
     STATUS_PENDING = "pending"
     STATUS_IN_PROGRESS = "in_progress"
@@ -18,7 +19,7 @@ class Task(models.Model):
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,
-        default=STATUS_PENDING
+        default=STATUS_PENDING,
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -31,21 +32,17 @@ class TaskDependency(models.Model):
     task = models.ForeignKey(
         Task,
         related_name="dependencies",
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
     )
     depends_on = models.ForeignKey(
         Task,
         related_name="dependents",
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
     )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         unique_together = ("task", "depends_on")
-
-    def clean(self):
-        if self.task_id == self.depends_on_id:
-            raise ValueError("Task cannot depend on itself")
 
     def __str__(self):
         return f"{self.task_id} depends on {self.depends_on_id}"

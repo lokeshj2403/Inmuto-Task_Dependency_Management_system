@@ -1,4 +1,4 @@
-from rest_framework import status, viewsets
+from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -7,7 +7,7 @@ from core.serializers import TaskSerializer
 from core.services.dependency_checker import detect_cycle
 from core.services.status_updater import (
     evaluate_task_status,
-    cascade_status_update
+    cascade_status_update,
 )
 
 
@@ -29,10 +29,16 @@ class TaskViewSet(viewsets.ModelViewSet):
         task = self.get_object()
         depends_on_id = request.data.get("depends_on_id")
 
-        if str(task.id) == str(depends_on_id):
+        if not depends_on_id:
+            return Response(
+                {"error": "depends_on_id is required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if int(depends_on_id) == task.id:
             return Response(
                 {"error": "Task cannot depend on itself"},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         # Build dependency graph
@@ -43,26 +49,26 @@ class TaskViewSet(viewsets.ModelViewSet):
         has_cycle, path = detect_cycle(
             start_task_id=task.id,
             target_task_id=int(depends_on_id),
-            dependency_map=dependency_map
+            dependency_map=dependency_map,
         )
 
         if has_cycle:
             return Response(
                 {
                     "error": "Circular dependency detected",
-                    "path": path
+                    "path": path,
                 },
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         TaskDependency.objects.create(
             task_id=task.id,
-            depends_on_id=depends_on_id
+            depends_on_id=depends_on_id,
         )
 
         evaluate_task_status(task)
 
         return Response(
             {"message": "Dependency added"},
-            status=status.HTTP_201_CREATED
+            status=status.HTTP_201_CREATED,
         )

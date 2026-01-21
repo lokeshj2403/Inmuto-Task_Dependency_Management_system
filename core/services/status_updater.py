@@ -1,6 +1,7 @@
 from core.models import Task, TaskDependency
 
-def evaluate_task_status(task: Task):
+
+def evaluate_task_status(task):
     dependencies = TaskDependency.objects.filter(task=task).select_related("depends_on")
 
     if not dependencies.exists():
@@ -20,10 +21,8 @@ def evaluate_task_status(task: Task):
         task.save(update_fields=["status"])
 
 
-def cascade_status_update(task: Task):
-    dependents = TaskDependency.objects.filter(
-        depends_on=task
-    ).select_related("task")
+def cascade_status_update(task):
+    dependents = TaskDependency.objects.filter(depends_on=task).select_related("task")
 
     for dep in dependents:
         evaluate_task_status(dep.task)
