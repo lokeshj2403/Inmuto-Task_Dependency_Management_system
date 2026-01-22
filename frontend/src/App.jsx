@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { fetchTasks, updateTaskStatus } from "./api/tasks";
 import CreateTaskForm from "./components/CreateTaskForm";
+import AddDependency from "./components/AddDependency";
+
 
 const STATUS_STYLES = {
   pending: "bg-gray-200 text-gray-800",
@@ -63,6 +65,11 @@ export default function App() {
                   <div className="text-sm text-gray-600">
                     {task.description}
                   </div>
+                  <AddDependency
+                    task={task}
+                    allTasks={tasks}
+                    onSuccess={loadTasks}
+                  />
                 </div>
 
                 <select

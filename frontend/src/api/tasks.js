@@ -20,3 +20,21 @@ export async function updateTaskStatus(taskId, status) {
 
   return res.json();
 }
+export async function addDependency(taskId, dependsOnId) {
+  const res = await fetch(
+    `http://127.0.0.1:8000/api/tasks/${taskId}/dependencies/`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ depends_on_id: dependsOnId }),
+    }
+  );
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    throw data;
+  }
+
+  return data;
+}
