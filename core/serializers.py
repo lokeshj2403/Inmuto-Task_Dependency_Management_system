@@ -1,8 +1,27 @@
 from rest_framework import serializers
-from core.models import Task
+from core.models import Task, TaskDependency
+
+
+class TaskDependencySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TaskDependency
+        fields = ["depends_on"]
 
 
 class TaskSerializer(serializers.ModelSerializer):
+    dependencies = TaskDependencySerializer(
+        many=True,
+        read_only=True
+    )
+
     class Meta:
         model = Task
-        fields = "__all__"
+        fields = [
+            "id",
+            "title",
+            "description",
+            "status",
+            "created_at",
+            "updated_at",
+            "dependencies",
+        ]

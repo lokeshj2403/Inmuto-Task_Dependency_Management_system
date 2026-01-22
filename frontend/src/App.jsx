@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { fetchTasks, updateTaskStatus } from "./api/tasks";
 import CreateTaskForm from "./components/CreateTaskForm";
 import AddDependency from "./components/AddDependency";
+import DependencyGraph from "./components/DependencyGraph";
+
 
 
 const STATUS_STYLES = {
@@ -70,6 +72,8 @@ export default function App() {
                     allTasks={tasks}
                     onSuccess={loadTasks}
                   />
+                  <DependencyGraph tasks={tasks} />
+
                 </div>
 
                 <select
