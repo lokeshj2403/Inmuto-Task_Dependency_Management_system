@@ -2,16 +2,24 @@ from core.models import Task, TaskDependency
 
 
 def evaluate_task_status(task):
-    dependencies = TaskDependency.objects.filter(task=task).select_related("depends_on")
+    """
+    Recalculate a task's status based on its dependencies.
+    """
+    dependencies = (
+        TaskDependency.objects
+        .filter(task=task)
+        .select_related("depends_on")
+    )
 
+    # If no dependencies, do not auto-change status
     if not dependencies.exists():
         return
 
-    statuses = [d.depends_on.status for d in dependencies]
+    statuses = [dep.depends_on.status for dep in dependencies]
 
-    if any(s == Task.STATUS_BLOCKED for s in statuses):
+    if any(status == Task.STATUS_BLOCKED for status in statuses):
         new_status = Task.STATUS_BLOCKED
-    elif all(s == Task.STATUS_COMPLETED for s in statuses):
+    elif all(status == Task.STATUS_COMPLETED for status in statuses):
         new_status = Task.STATUS_IN_PROGRESS
     else:
         new_status = Task.STATUS_PENDING
@@ -22,7 +30,20 @@ def evaluate_task_status(task):
 
 
 def cascade_status_update(task):
-    dependents = TaskDependency.objects.filter(depends_on=task).select_related("task")
+    """
+    Recursively update all tasks that depend on the given task.
+    """
+    dependents = (
+        TaskDependency.objects
+        .filter(depends_on=task)
+        .select_related("task")
+    )
 
     for dep in dependents:
-        evaluate_task_status(dep.task)
+        dependent_task = dep.task
+
+        # Recalculate dependent task
+        evaluate_task_status(dependent_task)
+
+        # CRITICAL FIX: recurse further
+        cascade_status_update(dependent_task)

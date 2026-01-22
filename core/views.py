@@ -1,10 +1,9 @@
 from rest_framework import viewsets, status
-from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.decorators import action
 
 from core.models import Task, TaskDependency
 from core.serializers import TaskSerializer
-from core.services.dependency_checker import detect_cycle
 from core.services.status_updater import (
     evaluate_task_status,
     cascade_status_update,
@@ -16,59 +15,38 @@ class TaskViewSet(viewsets.ModelViewSet):
     serializer_class = TaskSerializer
 
     def partial_update(self, request, *args, **kwargs):
-        response = super().partial_update(request, *args, **kwargs)
-
         task = self.get_object()
-        if task.status == Task.STATUS_COMPLETED:
+        new_status = request.data.get("status")
+
+        if new_status:
+            task.status = new_status
+            task.save(update_fields=["status"])
+
+            # 🔥 THIS IS THE CRITICAL LINE
             cascade_status_update(task)
 
-        return response
+        serializer = self.get_serializer(task)
+        return Response(serializer.data)
 
     @action(detail=True, methods=["post"])
     def dependencies(self, request, pk=None):
         task = self.get_object()
         depends_on_id = request.data.get("depends_on_id")
 
-        if not depends_on_id:
-            return Response(
-                {"error": "depends_on_id is required"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        if int(depends_on_id) == task.id:
+        if task.id == depends_on_id:
             return Response(
                 {"error": "Task cannot depend on itself"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Build dependency graph
-        dependency_map = {}
-        for dep in TaskDependency.objects.all():
-            dependency_map.setdefault(dep.task_id, []).append(dep.depends_on_id)
-
-        has_cycle, path = detect_cycle(
-            start_task_id=task.id,
-            target_task_id=int(depends_on_id),
-            dependency_map=dependency_map,
-        )
-
-        if has_cycle:
-            return Response(
-                {
-                    "error": "Circular dependency detected",
-                    "path": path,
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        depends_on = Task.objects.get(id=depends_on_id)
 
         TaskDependency.objects.create(
-            task_id=task.id,
-            depends_on_id=depends_on_id,
+            task=task,
+            depends_on=depends_on
         )
 
+        # Recalculate task status after adding dependency
         evaluate_task_status(task)
 
-        return Response(
-            {"message": "Dependency added"},
-            status=status.HTTP_201_CREATED,
-        )
+        return Response({"success": True})

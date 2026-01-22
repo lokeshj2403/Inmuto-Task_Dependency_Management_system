@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { fetchTasks } from "./api/tasks";
+import { fetchTasks, updateTaskStatus } from "./api/tasks";
 import CreateTaskForm from "./components/CreateTaskForm";
 
 const STATUS_STYLES = {
@@ -26,6 +26,15 @@ export default function App() {
     }
   }
 
+  async function handleStatusChange(taskId, newStatus) {
+    try {
+      await updateTaskStatus(taskId, newStatus);
+      loadTasks();
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
   useEffect(() => {
     loadTasks();
   }, []);
@@ -37,7 +46,6 @@ export default function App() {
           Task Dependency Management
         </h1>
 
-        {/* Create Task */}
         <CreateTaskForm onCreated={loadTasks} />
 
         {loading && <p>Loading tasks…</p>}
@@ -57,13 +65,20 @@ export default function App() {
                   </div>
                 </div>
 
-                <span
-                  className={`px-3 py-1 rounded text-sm font-medium ${
+                <select
+                  value={task.status}
+                  onChange={(e) =>
+                    handleStatusChange(task.id, e.target.value)
+                  }
+                  className={`px-2 py-1 rounded text-sm font-medium ${
                     STATUS_STYLES[task.status]
                   }`}
                 >
-                  {task.status}
-                </span>
+                  <option value="pending">pending</option>
+                  <option value="in_progress">in_progress</option>
+                  <option value="completed">completed</option>
+                  <option value="blocked">blocked</option>
+                </select>
               </li>
             ))}
           </ul>
