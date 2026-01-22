@@ -3,15 +3,23 @@ export default function DependencyGraph({ tasks }) {
   const nodeHeight = 50;
   const gapX = 200;
   const gapY = 80;
+  const nodesPerColumn = 5;
 
-  // Simple vertical layout
+  // Calculate layout
   const positions = {};
   tasks.forEach((task, index) => {
+    const column = Math.floor(index / nodesPerColumn);
+    const row = index % nodesPerColumn;
+
     positions[task.id] = {
-      x: 50 + Math.floor(index / 5) * gapX,
-      y: 50 + (index % 5) * gapY,
+      x: 50 + column * gapX,
+      y: 50 + row * gapY,
     };
   });
+
+  // Dynamically calculate SVG height
+  const rows = Math.min(nodesPerColumn, tasks.length);
+  const svgHeight = rows * gapY + 100;
 
   const STATUS_COLORS = {
     pending: "#e5e7eb",
@@ -21,8 +29,26 @@ export default function DependencyGraph({ tasks }) {
   };
 
   return (
-    <svg width="100%" height="400" className="border mt-6 bg-white">
-      {/* Arrows */}
+    <svg
+      width="100%"
+      height={svgHeight}
+      className="border mt-6 bg-white"
+    >
+      {/* Arrow marker */}
+      <defs>
+        <marker
+          id="arrow"
+          markerWidth="10"
+          markerHeight="10"
+          refX="6"
+          refY="3"
+          orient="auto"
+        >
+          <path d="M0,0 L0,6 L9,3 z" fill="#555" />
+        </marker>
+      </defs>
+
+      {/* Dependency arrows */}
       {tasks.map((task) =>
         task.dependencies?.map((dep) => {
           const from = positions[dep.depends_on];
@@ -43,21 +69,7 @@ export default function DependencyGraph({ tasks }) {
         })
       )}
 
-      {/* Arrow marker */}
-      <defs>
-        <marker
-          id="arrow"
-          markerWidth="10"
-          markerHeight="10"
-          refX="6"
-          refY="3"
-          orient="auto"
-        >
-          <path d="M0,0 L0,6 L9,3 z" fill="#555" />
-        </marker>
-      </defs>
-
-      {/* Nodes */}
+      {/* Task nodes */}
       {tasks.map((task) => {
         const pos = positions[task.id];
         return (
